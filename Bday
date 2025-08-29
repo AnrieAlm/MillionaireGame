@@ -1,0 +1,285 @@
+package Bday;
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class MillionaireGame extends Application {
+
+    private int currentQuestionIndex = 0;
+    private int score = 0;
+    private boolean[] usedLifelines = new boolean[3]; // Tracks if lifelines are used
+    private ImageView darrenImageView;
+
+    private final String[] darrenHappyImage = {"/Assets/darren_happy.png"};
+    private final String[] darrenSadImage = {"/Assets/darren_sad.png"};
+    private final String[] darrenNeutralImage = {"/Assets/darren_neutral.png"};
+
+    private RadioButton option1, option2, option3, option4; // Store references to radio buttons
+
+    private final Question[] questions = {
+            new Question("What is the capital of France?", "Berlin", "Paris", "Madrid", "Rome", "Paris"),
+            new Question("Which planet is known as the Red Planet?", "Earth", "Mars", "Venus", "Jupiter", "Mars"),
+            new Question("Who wrote 'Romeo and Juliet'?", "Charles Dickens", "William Shakespeare", "Mark Twain", "Jane Austen", "William Shakespeare"),
+            new Question("What is the largest ocean on Earth?", "Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean", "Pacific Ocean"),
+            new Question("What is the chemical symbol for water?", "H2O", "CO2", "NaCl", "O2", "H2O"),
+            new Question("Which animal is known as the 'King of the Jungle'?", "Elephant", "Tiger", "Lion", "Giraffe", "Lion"),
+            new Question("What is the square root of 64?", "8", "6", "12", "10", "8"),
+            new Question("Who painted the Mona Lisa?", "Vincent van Gogh", "Leonardo da Vinci", "Pablo Picasso", "Claude Monet", "Leonardo da Vinci"),
+            new Question("What is the hardest natural substance on Earth?", "Gold", "Iron", "Diamond", "Quartz", "Diamond"),
+            new Question("What is the currency of Japan?", "Yuan", "Won", "Yen", "Rupee", "Yen")
+    };
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("How to Be a Millionaire - Happy Birthday Darren!");
+
+        // Root layout
+        BorderPane root = new BorderPane();
+        root.setPadding(new Insets(20));
+
+        // Top section: Score and Lifelines
+        HBox topSection = new HBox(20);
+        topSection.setAlignment(Pos.CENTER);
+
+        Label scoreLabel = new Label("Score: $0");
+        scoreLabel.setFont(Font.font("Arial", 18));
+        scoreLabel.setTextFill(Color.GREEN);
+
+        Button callFriendButton = createLifelineButton("Call a Friend", 0);
+        Button fiftyFiftyButton = createLifelineButton("50/50", 1);
+        Button askAudienceButton = createLifelineButton("Ask the Audience", 2);
+
+        topSection.getChildren().addAll(scoreLabel, callFriendButton, fiftyFiftyButton, askAudienceButton);
+        root.setTop(topSection);
+
+        // Center section: Question and Options
+        VBox centerSection = new VBox(20);
+        centerSection.setAlignment(Pos.CENTER);
+
+        Label questionLabel = new Label();
+        questionLabel.setFont(Font.font("Arial", 24));
+        questionLabel.setWrapText(true);
+        questionLabel.setMaxWidth(600);
+
+        ToggleGroup optionsGroup = new ToggleGroup();
+        option1 = createOptionButton(optionsGroup);
+        option2 = createOptionButton(optionsGroup);
+        option3 = createOptionButton(optionsGroup);
+        option4 = createOptionButton(optionsGroup);
+
+        Button submitButton = new Button("Submit");
+        submitButton.setFont(Font.font("Arial", 18));
+        submitButton.setDisable(true);
+
+        centerSection.getChildren().addAll(questionLabel, option1, option2, option3, option4, submitButton);
+        root.setCenter(centerSection);
+
+        // Bottom section: Darren's Image
+        darrenImageView = new ImageView(new Image(getClass().getResourceAsStream(darrenNeutralImage[0])));
+        darrenImageView.setFitWidth(200);
+        darrenImageView.setPreserveRatio(true);
+
+        VBox bottomSection = new VBox(20);
+        bottomSection.setAlignment(Pos.CENTER);
+        bottomSection.getChildren().add(darrenImageView);
+        root.setBottom(bottomSection);
+
+        // Scene setup
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+        // Initialize the first question
+        loadQuestion(currentQuestionIndex, questionLabel, option1, option2, option3, option4, submitButton, optionsGroup);
+
+        // Submit button action
+        submitButton.setOnAction(e -> {
+            RadioButton selectedOption = (RadioButton) optionsGroup.getSelectedToggle();
+            if (selectedOption != null) {
+                String selectedAnswer = selectedOption.getText();
+                if (selectedAnswer.equals(questions[currentQuestionIndex].getCorrectAnswer())) {
+                    score += 100_000; // Increment score
+                    scoreLabel.setText("Score: $" + score);
+                    darrenImageView.setImage(new Image(getClass().getResourceAsStream(darrenHappyImage[0])));
+                } else {
+                    darrenImageView.setImage(new Image(getClass().getResourceAsStream(darrenSadImage[0])));
+                    showAlert("Game Over!", "Sorry, that was incorrect. Your final score is $" + score);
+                    primaryStage.close();
+                    return;
+                }
+
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    loadQuestion(currentQuestionIndex, questionLabel, option1, option2, option3, option4, submitButton, optionsGroup);
+                } else {
+                    showAlert("Congratulations!", "You answered all questions correctly! You're a millionaire!");
+                    primaryStage.close();
+                }
+            }
+        });
+    }
+
+    private void loadQuestion(int index, Label questionLabel, RadioButton option1, RadioButton option2, RadioButton option3, RadioButton option4, Button submitButton, ToggleGroup optionsGroup) {
+        Question question = questions[index];
+        questionLabel.setText((index + 1) + ". " + question.getQuestion());
+
+        List<String> answers = new ArrayList<>();
+        answers.add(question.getOption1());
+        answers.add(question.getOption2());
+        answers.add(question.getOption3());
+        answers.add(question.getOption4());
+        Collections.shuffle(answers);
+
+        option1.setText(answers.get(0));
+        option2.setText(answers.get(1));
+        option3.setText(answers.get(2));
+        option4.setText(answers.get(3));
+
+        option1.setDisable(false); // Ensure all options are enabled
+        option2.setDisable(false);
+        option3.setDisable(false);
+        option4.setDisable(false);
+
+        optionsGroup.selectToggle(null); // Clear selection
+        submitButton.setDisable(false);
+    }
+
+    private Button createLifelineButton(String text, int lifelineIndex) {
+        Button button = new Button(text);
+        button.setFont(Font.font("Arial", 16));
+        button.setOnAction(e -> {
+            if (!usedLifelines[lifelineIndex]) {
+                usedLifelines[lifelineIndex] = true;
+                button.setDisable(true);
+
+                switch (lifelineIndex) {
+                    case 0: // Call a Friend
+                        showAlert("Call a Friend", "Sorry Darren, you have no friends.");
+                        break;
+
+                    case 1: // 50/50
+                        // Show the humorous dialog box
+                        showAlert("50/50", "Not my monkey, not my circus.");
+
+                        // Remove two incorrect options
+                        removeTwoIncorrectOptions();
+                        break;
+
+                    case 2: // Ask the Audience
+                        showAlert("Ask the Audience", "The audience is clueless!");
+                        break;
+                }
+            } else {
+                showAlert("Lifeline Used", "You've already used this lifeline!");
+            }
+        });
+        return button;
+    }
+
+    private void removeTwoIncorrectOptions() {
+        RadioButton[] options = {option1, option2, option3, option4};
+        String correctAnswer = questions[currentQuestionIndex].getCorrectAnswer();
+
+        // Collect all incorrect options
+        List<RadioButton> incorrectOptions = new ArrayList<>();
+        for (RadioButton option : options) {
+            if (!option.getText().equals(correctAnswer)) {
+                incorrectOptions.add(option);
+            }
+        }
+
+        // Randomly select two incorrect options to disable
+        Collections.shuffle(incorrectOptions);
+        for (int i = 0; i < 2 && i < incorrectOptions.size(); i++) {
+            incorrectOptions.get(i).setDisable(true);
+        }
+    }
+
+    private RadioButton createOptionButton(ToggleGroup group) {
+        RadioButton button = new RadioButton();
+        button.setFont(Font.font("Arial", 18));
+        button.setToggleGroup(group);
+        return button;
+    }
+
+    private void showAlert(String title, String message) {
+        Stage alertStage = new Stage();
+        alertStage.initModality(Modality.APPLICATION_MODAL);
+        alertStage.setTitle(title);
+
+        VBox vbox = new VBox(20);
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setPadding(new Insets(20));
+
+        Label label = new Label(message);
+        label.setFont(Font.font("Arial", 18));
+
+        Button closeButton = new Button("Close");
+        closeButton.setOnAction(e -> alertStage.close());
+
+        vbox.getChildren().addAll(label, closeButton);
+
+        Scene scene = new Scene(vbox, 400, 200);
+        alertStage.setScene(scene);
+        alertStage.showAndWait();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    private static class Question {
+        private final String question;
+        private final String option1;
+        private final String option2;
+        private final String option3;
+        private final String option4;
+        private final String correctAnswer;
+
+        public Question(String question, String option1, String option2, String option3, String option4, String correctAnswer) {
+            this.question = question;
+            this.option1 = option1;
+            this.option2 = option2;
+            this.option3 = option3;
+            this.option4 = option4;
+            this.correctAnswer = correctAnswer;
+        }
+
+        public String getQuestion() {
+            return question;
+        }
+
+        public String getOption1() {
+            return option1;
+        }
+
+        public String getOption2() {
+            return option2;
+        }
+
+        public String getOption3() {
+            return option3;
+        }
+
+        public String getOption4() {
+            return option4;
+        }
+
+        public String getCorrectAnswer() {
+            return correctAnswer;
+        }
+    }
+}
